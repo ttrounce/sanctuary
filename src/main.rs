@@ -1,25 +1,27 @@
-mod charactersheet_page;
-mod page;
+mod cspage;
 mod state;
 
-use charactersheet_page::CharacterSheetPage;
+use cspage::{character_sheet_draw, character_sheet_key, CharacterSheetState};
 use crossterm::{
     event::{self, poll, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use page::DrawablePage;
-use state::State;
+use state::{ProgramState, State};
 use std::{
-    collections::HashMap,
     io::{self, stdout, Stdout},
-    time::Duration,
+    time::Duration, hash::Hash, collections::{HashMap, hash_map},
 };
 use tui::{backend::CrosstermBackend, Terminal};
 
 type Backend = CrosstermBackend<Stdout>;
 
-trait DrawableWidget {}
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
+pub enum Page
+{
+    None,
+    CharacterSheet
+}
 
 fn main() -> Result<(), io::Error> {
     let mut terminal = create_terminal();
@@ -29,40 +31,43 @@ fn main() -> Result<(), io::Error> {
 }
 
 fn start(terminal: &mut Terminal<Backend>) -> io::Result<()> {
-    let mut state = State {
+    let mut program_state = ProgramState {
         objects: HashMap::new(),
+        current_page: Page::CharacterSheet,
+        current_key: None
     };
-    let mut pages = HashMap::new();
 
-    pages.insert(String::from("csheet"), CharacterSheetPage::new_box());
+    let mut pages = HashMap::from([
+        (Page::CharacterSheet, CharacterSheetState::new())
+    ]);
 
-    let mut current_page_name = String::from("csheet");
-    let mut current_key_code: Option<KeyCode> = None;
     loop {
-        let mut next_page = String::new();
 
-        if poll(Duration::from_millis(10))? {
+        if poll(Duration::from_secs(0))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => break,
-                    _ => current_key_code = Some(key.code),
+                    _ => program_state.current_key = Some(key.code),
                 }
             }
         } else {
-            current_key_code = None;
+            program_state.current_key = None;
         }
 
+        let mut local_state = pages.get_mut(&program_state.current_page).unwrap();
+
         terminal.draw(|f| {
-            let current_page = pages.get_mut(&current_page_name).unwrap();
-            if let Some(key) = current_key_code {
-                current_page.key(&mut state, key);
+            match &mut program_state.current_page {
+                Page::CharacterSheet => character_sheet_draw(&mut local_state, &mut program_state, f),
+                _ => ()
             }
-            current_page.draw(&mut state, f);
-            next_page = current_page.next_page().to_owned();
         })?;
 
-        if pages.contains_key(next_page.as_str()) {
-            current_page_name = next_page;
+        if let Some(key) = program_state.current_key {
+            match program_state.current_page {
+                Page::CharacterSheet => character_sheet_key(&mut local_state, &mut program_state, key),
+                _ => ()
+            }
         }
     }
     Ok(())

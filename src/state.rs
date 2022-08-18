@@ -1,10 +1,24 @@
 use std::{any::Any, collections::HashMap};
 
-pub struct State {
-    pub objects: HashMap<String, Box<dyn Any>>,
+use crossterm::event::KeyCode;
+
+use crate::Page;
+
+pub trait State {
+    fn new() -> Self;
 }
 
-impl State {
+pub struct ProgramState {
+    pub objects: HashMap<String, Box<dyn Any>>,
+    pub current_page: Page,
+    pub current_key: Option<KeyCode>
+}
+
+impl ProgramState {
+
+    pub fn new() -> ProgramState {
+        ProgramState { objects: HashMap::new(), current_page: Page::None, current_key: None }
+    }
 
     pub(crate) fn store<T: Any>(&mut self, key: &str, value: T) {
         self.objects.insert(key.to_owned(), Box::new(value));
