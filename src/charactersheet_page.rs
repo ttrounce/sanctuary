@@ -1,7 +1,6 @@
-use std::io::Stdout;
+use std::{io::Stdout, default};
 use crossterm::event::KeyCode;
 use tui::{widgets::{Borders, Block, List, ListItem, ListState, Paragraph}, layout::{Constraint, Layout, Direction}, style::{Style, Modifier}, Frame};
-
 use tui::{backend::CrosstermBackend};
 
 use crate::{
@@ -23,6 +22,18 @@ impl CharacterSheetPage {
 impl DrawablePage for CharacterSheetPage {
     fn draw(&mut self, state: &mut State, frame: &mut Frame<CrosstermBackend<Stdout>>) {
         let cs_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(0)
+            .constraints(
+                [
+                    Constraint::Percentage(10),
+                    Constraint::Percentage(80),
+                    Constraint::Percentage(10)
+                ].as_ref()
+            )
+            .split(frame.size());
+
+        let cs_info_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .margin(0)
             .constraints(
@@ -31,8 +42,11 @@ impl DrawablePage for CharacterSheetPage {
                     Constraint::Percentage(80)
                 ].as_ref()
             )
-            .split(frame.size());
+            .split(cs_chunks[1]);
         
+        let header = Block::default()
+            .borders(Borders::ALL);
+
         let mut scroll_list_state = ListState::default();
         scroll_list_state.select(Some(self.scroll_index as usize));
 
@@ -50,13 +64,28 @@ impl DrawablePage for CharacterSheetPage {
         let cs_item_1 = Paragraph::new("Different stuff (it's all about Item 1)!")
             .block(Block::default().borders(Borders::ALL));
 
+        let cs_item_2 = Paragraph::new("More different stuff, but this time about Item 2.")
+            .block(Block::default().borders(Borders::ALL));
+
+        let cs_item_3 = Paragraph::new("Even more different stuff: this time about Item 3!")
+            .block(Block::default().borders(Borders::ALL));
+
         match self.scroll_index {
-            0 => frame.render_widget(cs_item_0, cs_chunks[1]),
-            1 => frame.render_widget(cs_item_1, cs_chunks[1]),
+            0 => frame.render_widget(cs_item_0, cs_info_chunks[1]),
+            1 => frame.render_widget(cs_item_1, cs_info_chunks[1]),
+            2 => frame.render_widget(cs_item_2, cs_info_chunks[1]),
+            3 => frame.render_widget(cs_item_3, cs_info_chunks[1]),
             _ => ()
         }
 
-        frame.render_stateful_widget(scroll_list, cs_chunks[0], &mut scroll_list_state);
+        let footer = Block::default()
+            .borders(Borders::ALL);
+
+        frame.render_widget(header, cs_chunks[0]);
+
+        frame.render_stateful_widget(scroll_list, cs_info_chunks[0], &mut scroll_list_state);
+
+        frame.render_widget(footer, cs_chunks[2]);
 
     }
 
