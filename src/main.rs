@@ -1,20 +1,25 @@
 mod charactersheet_page;
 mod page;
+mod state;
 
+use charactersheet_page::CharacterSheetPage;
 use crossterm::{
     event::{self, poll, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use charactersheet_page::CharacterSheetPage;
 use page::DrawablePage;
+use state::State;
 use std::{
+    collections::HashMap,
     io::{self, stdout, Stdout},
     time::Duration,
 };
 use tui::{backend::CrosstermBackend, Terminal};
 
 type Backend = CrosstermBackend<Stdout>;
+
+trait DrawableWidget {}
 
 fn main() -> Result<(), io::Error> {
     let mut terminal = create_terminal();
@@ -24,14 +29,17 @@ fn main() -> Result<(), io::Error> {
 }
 
 fn start(terminal: &mut Terminal<Backend>) -> io::Result<()> {
-    let mut pages: Vec<Box<dyn DrawablePage>> = vec![
-        CharacterSheetPage::new_box()
-    ];
+    let mut state = State {
+        objects: HashMap::new(),
+    };
+    let mut pages = HashMap::new();
 
-    let mut current_page_index: u32 = 0;
+    pages.insert(String::from("csheet"), CharacterSheetPage::new_box());
+
+    let mut current_page_name = String::from("csheet");
     let mut current_key_code: Option<KeyCode> = None;
     loop {
-        let mut next_page: u32 = 0;
+        let mut next_page = String::new();
 
         if poll(Duration::from_millis(10))? {
             if let Event::Key(key) = event::read()? {
@@ -45,16 +53,16 @@ fn start(terminal: &mut Terminal<Backend>) -> io::Result<()> {
         }
 
         terminal.draw(|f| {
-            let current_page = &mut pages[current_page_index as usize];
+            let current_page = pages.get_mut(&current_page_name).unwrap();
             if let Some(key) = current_key_code {
-                current_page.key(key);
+                current_page.key(&mut state, key);
             }
-            current_page.draw(f);
-            next_page = current_page.next_page();
+            current_page.draw(&mut state, f);
+            next_page = current_page.next_page().to_owned();
         })?;
 
-        if pages.len() >= next_page as usize {
-            current_page_index = next_page;
+        if pages.contains_key(next_page.as_str()) {
+            current_page_name = next_page;
         }
     }
     Ok(())
