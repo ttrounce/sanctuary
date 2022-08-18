@@ -1,5 +1,4 @@
-mod main_page;
-mod off_page;
+mod charactersheet_page;
 mod page;
 
 use crossterm::{
@@ -7,8 +6,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use main_page::MainPage;
-use off_page::OffPage;
+use charactersheet_page::CharacterSheetPage;
 use page::DrawablePage;
 use std::{
     io::{self, stdout, Stdout},
@@ -27,8 +25,7 @@ fn main() -> Result<(), io::Error> {
 
 fn start(terminal: &mut Terminal<Backend>) -> io::Result<()> {
     let mut pages: Vec<Box<dyn DrawablePage>> = vec![
-        MainPage::new_box(),
-        OffPage::new_box()
+        CharacterSheetPage::new_box()
     ];
 
     let mut current_page_index: u32 = 0;
