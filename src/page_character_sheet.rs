@@ -1,6 +1,6 @@
 use std::{io::Stdout};
 use crossterm::event::KeyCode;
-use tui::{widgets::{Borders, Block, List, ListItem, ListState, Paragraph}, layout::{Constraint, Layout, Direction}, style::{Style, Modifier}, Frame};
+use tui::{widgets::{Borders, Block, List, ListItem, ListState, Paragraph}, layout::{Constraint, Layout, Alignment, Direction}, style::{Style, Modifier}, Frame};
 use tui::{backend::CrosstermBackend};
 
 use crate::{
@@ -20,6 +20,19 @@ pub fn character_sheet_draw(state: &mut ProgramState, frame: &mut Frame<Crosster
         )
         .split(frame.size());
 
+    let cs_header_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(0)
+        .constraints(
+            [
+                Constraint::Percentage(15),
+                Constraint::Percentage(10),
+                Constraint::Percentage(70),
+                Constraint::Percentage(5)
+            ].as_ref()
+        )
+        .split(cs_chunks[0]);
+    
     let cs_info_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .margin(0)
@@ -29,10 +42,29 @@ pub fn character_sheet_draw(state: &mut ProgramState, frame: &mut Frame<Crosster
                 Constraint::Percentage(80)
             ].as_ref()
         )
-        .split(cs_chunks[1]);
+        .split(cs_chunks[1]);    
+
+    let hitpoints_block = Paragraph::new("10/15 +2")
+        .block(Block::default()
+               .title("Hit Points")
+               .borders(Borders::ALL))
+        .alignment(Alignment::Center);
     
-    let header = Block::default()
-        .borders(Borders::ALL);
+    let armorclass_block = Paragraph::new("AC:11")
+        .block(Block::default()
+               .title("Armor Class")
+               .borders(Borders::ALL))
+        .alignment(Alignment::Center);
+
+    let name_block = Paragraph::new("Player-character, Class(3) Class(1)")
+        .block(Block::default()
+               .title("Character")
+               .borders(Borders::ALL));
+
+    let notify_block = Paragraph::new("*!")
+        .block(Block::default()
+               .borders(Borders::ALL))
+        .alignment(Alignment::Center);
 
     let mut scroll_list_state = ListState::default();
     scroll_list_state.select(Some(state.scroll_index as usize));
@@ -68,7 +100,13 @@ pub fn character_sheet_draw(state: &mut ProgramState, frame: &mut Frame<Crosster
     let footer = Block::default()
         .borders(Borders::ALL);
 
-    frame.render_widget(header, cs_chunks[0]);
+    frame.render_widget(hitpoints_block, cs_header_chunks[0]);
+
+    frame.render_widget(armorclass_block, cs_header_chunks[1]);
+
+    frame.render_widget(name_block, cs_header_chunks[2]);
+
+    frame.render_widget(notify_block, cs_header_chunks[3]);
 
     frame.render_stateful_widget(scroll_list, cs_info_chunks[0], &mut scroll_list_state);
 
